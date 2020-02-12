@@ -5,6 +5,8 @@ import sqlite3
 
 def main():
     global shouldRun
+    global parent
+    global children
     # Parse command line arguments
     if len(sys.argv) != 2:
         print('Program usage: example_complete_graph this_client_id')
@@ -68,33 +70,16 @@ def main():
     print('To exit send message: exit.')
     
     while shouldRun:
-        # Input message
-        msg = input('Enter message: ')
-        msg = str(thisId) + msg
-        for it in relations:
-            sendMsg((it[1], it[2]), msg)
-        #print('Message sent: %s \n' % (msg))
-        
-        if msg[1:] == 'exit':
-            break
-        
-        # Send message to peer node's servers
-        #broadcastMsg(remote_server_addresses, msg)
-        
-        # Get message from local node's server
-        #print("-------------------------------------------------------------------")
-        #msg = rcvMsg(queue)
-        #print('Message received:', msg)
-        #print("-------------------------------------------------------------------")
+        sending(thisId, relations)
     
     # Join with server process
     server.join()
-    #client.join()
     receive.join()
     
     # Delete queue and server
     del queue
     del server
+    del receive
 
 if __name__ == '__main__':
     main()
