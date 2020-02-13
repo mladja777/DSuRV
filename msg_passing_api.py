@@ -77,7 +77,7 @@ def receiveData(thisId, targetServers, queue, children, parent):
                     if it[0] == msgSource:
                         parent.append(it)
                 print("Parent ", parent, " initialized.")
-                print("-------------------------------------------------------------------")
+                print("---------------------------")
                 msg = str(thisId) + "tree_parent"
                 p = parent[0]
                 sendMsg((p[1], p[2]), msg)
@@ -90,20 +90,20 @@ def receiveData(thisId, targetServers, queue, children, parent):
                 msg = str(thisId) + "tree_reject"
                 sendMsg((p[1], p[2]), msg)
                 print("Reject sent.")
-                print("-------------------------------------------------------------------")
+                print("---------------------------")
         elif msg == "tree_parent":
             for it in targetServers:
                 if it[0] == msgSource:
                     children.append(it)
                     print("Child ", children, " initialized.")
-                    print("-------------------------------------------------------------------")
+                    print("---------------------------")
         elif msg == "tree_reject":
             pass
         else:
             print('Message received:', msg)
             msg = str(thisId) + msg
             passAlong(msg, msgSource, children, parent)
-            print("-------------------------------------------------------------------")
+            print("---------------------------")
             if msg[1:] is "exit":
                 break
 

@@ -32,6 +32,8 @@ def main():
     relations = dbCursor.fetchall()
     # print("This client is connected to (this_id, client_ip, client_port): ")
     tmp = []
+    # print(relations)
+    # print("-------------------------------------------------------------------")
     for it in relations:
         for cli in clients:
             if it[2] == cli[2]:
