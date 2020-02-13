@@ -1,15 +1,15 @@
 import sys
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, Manager
 from multiprocessing.connection import Client, Listener
 from array import array
 
-parent = None
-children = []
 
-shouldRun = True
+# parent = None
+# children = []
+
+# shouldRun = True
 
 def server_fun(local_port, queue):
-    global shouldRun
     print("Server started.")
     # Set the address of the local node's server
     local_server_address = ('localhost', local_port)
@@ -17,76 +17,81 @@ def server_fun(local_port, queue):
     with Listener(local_server_address, authkey=b'Lets work together') as listener:
         while True:
             with listener.accept() as conn:
-                #print('connection accepted from', listener.last_accepted)
+                # print('connection accepted from', listener.last_accepted)
                 msg = conn.recv()
-                #print(msg)
-                print("New message arrived...")
-                
+
                 # Forward msg to local node's process
                 queue.put(msg)
-                
+
                 # Exit if msg is 'exit'
                 if msg[1:] == 'exit':
-                    shouldRun = False
                     break
+
 
 def sendMsg(remote_server_address, msg):
     with Client(remote_server_address, authkey=b'Lets work together') as conn:
         conn.send(msg)
 
+
 def rcvMsg(queue):
     return queue.get()
+
 
 def broadcastMsg(list_of_remote_server_address, msg):
     for remote_server_address in list_of_remote_server_address:
         sendMsg(remote_server_address, msg)
 
+
 def rcvMsgs(queue, no_of_messages_to_receive):
     msgs = []
-    
+
     for i in range(no_of_messages_to_receive):
-        msgs.append( rcvMsg(queue) )
-    
+        msgs.append(rcvMsg(queue))
+
     return msgs
 
-def passAlong(message, targetServers, thisId, msgSource):
-    global children
-    global parent
+
+def passAlong(message, msgSource, children, parent):
     for it in children:
         if msgSource != it[0]:
             sendMsg((it[1], it[2]), message)
 
-    if msgSource != parent[0]:
-        sendMsg((parent[1], parent[2]), message)
+    if len(parent) != 0:
+        p = parent[0]
+        if msgSource != p[0]:
+            sendMsg((p[1], p[2]), message)
 
     if message == 'exit':
-        shouldRun = False
+        pass
 
-def receiveData(thisId, targetServers, queue):
-    global shouldRun
-    global parent
-    global children
+
+def receiveData(thisId, targetServers, queue, children, parent):
     # Get message from local node's server
-    while shouldRun:
-        print("-------------------------------------------------------------------")
+    while True:
         msg = rcvMsg(queue)
         msgSource = int(msg[0])
         msg = msg[1:]
         if msg == "init_tree":
-            if parent == None:
+            if len(parent) == 0:
                 for it in targetServers:
                     if it[0] == msgSource:
-                        parent = it
+                        parent.append(it)
                 print("Parent ", parent, " initialized.")
                 print("-------------------------------------------------------------------")
                 msg = str(thisId) + "tree_parent"
-                sendMsg((parent[1], parent[2]), msg)
+                p = parent[0]
+                sendMsg((p[1], p[2]), msg)
+                initMsg = str(thisId) + "init_tree"
+                for it in targetServers:
+                    if msgSource != it[0]:
+                        sendMsg((it[1], it[2]), initMsg)
             else:
+                p = parent[0]
                 msg = str(thisId) + "tree_reject"
-                sendMsg((parent[1], parent[2]), msg)
+                sendMsg((p[1], p[2]), msg)
                 print("Reject sent.")
                 print("-------------------------------------------------------------------")
-        elif msg == "tree_parent":    
+        elif msg == "tree_parent":
             for it in targetServers:
                 if it[0] == msgSource:
                     children.append(it)
@@ -97,14 +102,15 @@ def receiveData(thisId, targetServers, queue):
         else:
             print('Message received:', msg)
             msg = str(thisId) + msg
-            passAlong(msg, targetServers, thisId, msgSource)
+            passAlong(msg, msgSource, children, parent)
             print("-------------------------------------------------------------------")
+            if msg[1:] is "exit":
+                break
 
-def sending(thisId, relations):
-    global parent
-    global children
+
+def sending(thisId, relations, children, parent):
     # Input message
-    msg = input('Enter message: ')
+    msg = input()
     if msg == "init_tree":
         msg = str(thisId) + msg
         for it in relations:
@@ -114,13 +120,13 @@ def sending(thisId, relations):
                 pass
     else:
         msg = str(thisId) + msg
-        print(children)
         for it in children:
             sendMsg((it[1], it[2]), msg)
-        print(parent)
-        if parent != None:
-            sendMsg((parent[1], parent[2]), msg)
-    #print('Message sent: %s \n' % (msg))
-    
+        if len(parent) != 0:
+            p = parent[0]
+            sendMsg((p[1], p[2]), msg)
+
     if msg[1:] == 'exit':
-        shouldRun = False
+        return False
+    else:
+        return True
