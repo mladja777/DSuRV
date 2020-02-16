@@ -3,12 +3,6 @@ from multiprocessing import Process, Queue, Manager
 from multiprocessing.connection import Client, Listener
 from array import array
 
-
-# parent = None
-# children = []
-
-# shouldRun = True
-
 def server_fun(local_port, queue):
     print("Server started.")
     # Set the address of the local node's server
